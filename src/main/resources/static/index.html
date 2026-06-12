@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fisight Product Catalog</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center border-b border-slate-700 pb-6 mb-8">
+            <div>
+                <h1 class="text-3xl font-extrabold text-teal-400">🌊 Fisight Catalog</h1>
+                <p class="text-slate-400 text-sm mt-1">Sistem Manajemen Stok & Katalog Produk Perikanan</p>
+            </div>
+            <div class="flex gap-4">
+                <a href="/swagger-ui/index.html" target="_blank" class="bg-slate-800 hover:bg-slate-700 text-teal-300 font-semibold px-4 py-2 rounded-lg border border-teal-500/30 transition">
+                    📖 API Documentation (Swagger)
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Form Input Produk -->
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
+                <h2 class="text-xl font-bold text-teal-300 mb-4">Tambah Produk Baru</h2>
+                <form id="productForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Nama Produk</label>
+                        <input type="text" id="name" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-teal-500" placeholder="Contoh: Ikan Mujair">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Harga (Rp)</label>
+                        <input type="number" id="price" required min="0" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-teal-500" placeholder="Contoh: 25000">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Jumlah Stok</label>
+                        <input type="number" id="stock" required min="0" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-teal-500" placeholder="Contoh: 100">
+                    </div>
+                    <button type="submit" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-2.5 rounded-lg transition duration-200">
+                        Simpan Produk
+                    </button>
+                </form>
+            </div>
+
+            <!-- List/Daftar Produk -->
+            <div class="lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
+                <h2 class="text-xl font-bold text-teal-300 mb-4">Daftar Katalog Produk</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-700 text-slate-400 text-sm">
+                                <th class="pb-3">ID</th>
+                                <th class="pb-3">Nama Produk</th>
+                                <th class="pb-3">Harga</th>
+                                <th class="pb-3">Stok</th>
+                                <th class="pb-3 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productList" class="divide-y divide-slate-700/50">
+                            <!-- Data akan dimuat melalui Javascript -->
+                            <tr>
+                                <td colspan="5" class="py-4 text-center text-slate-500">Memuat data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend logic (SPA) -->
+    <script>
+        const API_URL = '/api/products';
+
+        async function fetchProducts() {
+            try {
+                const res = await fetch(API_URL);
+                const products = await res.json();
+                const tbody = document.getElementById('productList');
+                
+                if (products.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="py-6 text-center text-slate-500">Katalog kosong. Silakan tambah produk!</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = products.map(p => `
+                    <tr class="hover:bg-slate-700/30 transition text-sm">
+                        <td class="py-3.5 font-medium text-slate-400">#${p.id}</td>
+                        <td class="py-3.5 font-semibold text-white">${escapeHtml(p.name)}</td>
+                        <td class="py-3.5 text-teal-400 font-medium">Rp ${p.price.toLocaleString('id-ID')}</td>
+                        <td class="py-3.5">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${p.stock > 10 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                                ${p.stock} Unit
+                            </span>
+                        </td>
+                        <td class="py-3.5 text-right">
+                            <button onclick="deleteProduct(${p.id})" class="text-rose-400 hover:text-rose-300 hover:underline text-xs font-bold transition">
+                                Hapus
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error("Error fetching products:", err);
+            }
+        }
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const price = parseFloat(document.getElementById('price').value);
+            const stock = parseInt(document.getElementById('stock').value);
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, price, stock })
+                });
+
+                if (res.ok) {
+                    document.getElementById('productForm').reset();
+                    fetchProducts();
+                } else {
+                    alert("Gagal menyimpan produk. Periksa kembali inputan Anda.");
+                }
+            } catch (err) {
+                console.error("Error saving product:", err);
+            }
+        });
+
+        async function deleteProduct(id) {
+            if (confirm("Apakah Anda yakin ingin menghapus produk ini?")) {
+                try {
+                    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                    fetchProducts();
+                } catch (err) {
+                    console.error("Error deleting product:", err);
+                }
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Jalankan saat load halaman pertama
+        fetchProducts();
+    </script>
+</body>
+</html>
