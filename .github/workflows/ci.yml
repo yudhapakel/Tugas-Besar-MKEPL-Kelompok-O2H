@@ -1,0 +1,133 @@
+name: MKEPL CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # ==========================================
+  # KOMPONEN 1: CONTINUOUS INTEGRATION (CI)
+  # Penanggung Jawab: Anggota 1 (CI Engineer)
+  # Tugas: Melakukan checkout, build, compile, caching
+  # ==========================================
+  continuous-integration:
+    name: Build & Compile (CI)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Compile and Package
+        run: mvn clean compile
+
+  # ==========================================
+  # KOMPONEN 2: CONTINUOUS TESTING (CT)
+  # Penanggung Jawab: Anggota 2 (QA / Testing Engineer)
+  # Tugas: Menjalankan unit test & generate report coverage JaCoCo
+  # ==========================================
+  continuous-testing:
+    name: Unit Test & Coverage (CT)
+    runs-on: ubuntu-latest
+    needs: continuous-integration
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Run Maven Tests
+        run: mvn clean test
+
+      - name: Upload JaCoCo Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+
+  # ==========================================
+  # KOMPONEN 3: CONTINUOUS INSPECTION
+  # Penanggung Jawab: Anggota 3 (Security & Code Quality Engineer)
+  # Tugas: Vulnerability scanning (Trivy) & Code Smell check (SonarCloud)
+  # ==========================================
+  continuous-inspection:
+    name: Code Quality & Security Scan (Inspection)
+    runs-on: ubuntu-latest
+    needs: continuous-integration
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          exit-code: '0'
+
+  # ==========================================
+  # KOMPONEN 4: CONTINUOUS DEPLOYMENT/DELIVERY (CD)
+  # Penanggung Jawab: Anggota 4 (Release Manager / DevOps Engineer)
+  # Tugas: Membuat Release Build JAR otomatis & deploy ke GitHub Releases
+  # ==========================================
+  continuous-deployment:
+    name: Auto Release Deploy (CD)
+    runs-on: ubuntu-latest
+    needs: [continuous-testing, continuous-inspection]
+    # Hanya deploy otomatis ketika di-merge ke branch main dan ada trigger tag/push main
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Build Executable JAR
+        run: mvn clean package -DskipTests
+
+      - name: Get Version and Date
+        id: vars
+        run: |
+          echo "version=v$(date +'%Y.%m.%d.%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release and Upload JAR
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.version }}
+          name: Release ${{ steps.vars.outputs.version }}
+          draft: false
+          prerelease: false
+          files: target/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

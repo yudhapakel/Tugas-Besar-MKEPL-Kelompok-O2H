@@ -1,0 +1,9 @@
+/target/
+.idea/
+*.iml
+.DS_Store
+.mvn/
+/uploads/
+.env
+.venv/
+.pytest_cache/
