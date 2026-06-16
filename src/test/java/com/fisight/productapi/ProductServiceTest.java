@@ -39,4 +39,24 @@ class ProductServiceTest {
         Product product = new Product("Ikan Gurame", -5000.0, 10);
         assertThrows(IllegalArgumentException.class, () -> productService.saveProduct(product));
     }
+
+    @Test
+    void testGetProductById() {
+        Product product = new Product("Ikan Nila", 15000.0, 30);
+        Product saved = productService.saveProduct(product);
+
+        java.util.Optional<Product> found = productService.getProductById(saved.getId());
+        assertTrue(found.isPresent());
+        assertEquals("Ikan Nila", found.get().getName());
+    }
+
+    @Test
+    void testDeleteProduct() {
+        Product product = new Product("Ikan Patin", 20000.0, 20);
+        Product saved = productService.saveProduct(product);
+
+        productService.deleteProduct(saved.getId());
+        java.util.Optional<Product> found = productService.getProductById(saved.getId());
+        assertFalse(found.isPresent());
+    }
 }
