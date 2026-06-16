@@ -59,4 +59,10 @@ Untuk menunjukkan penggunaan Git yang matang saat presentasi:
    git commit -m "feat: tambahkan endpoint update produk"
    ```
 4. Push branch ke GitHub dan buat **Pull Request (PR)** ke branch `main`.
-5. Amati jalannya pipeline GitHub Actions pada halaman Pull Request. Tunjukkan pada video presentasi bahwa pipeline mendeteksi PR tersebut dan melakukan tes otomatis untuk menjamin tidak ada kode yang merusak sistem sebelum di-merge.
+5. Amati jalannya pipeline GitHub Actions pada halaman Pull Request. Tunjukkan pada video presentasi bahwa pipeline mendeteksi PR tersebut dan melakukan tes otomatis untuk menjamin tidak ada kode yang merusak sistem sebelum di-merge.     
+
+
+
+
+
+
