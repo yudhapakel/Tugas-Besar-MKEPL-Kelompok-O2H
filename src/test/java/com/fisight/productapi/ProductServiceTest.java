@@ -16,6 +16,7 @@ class ProductServiceTest {
     @Autowired
     private ProductService productService;
 
+    // Test valid product creation and retrieval
     @Test
     void testSaveAndGetProduct() {
         Product product = new Product("Ikan Mujair", 25000.0, 50);
@@ -39,4 +40,11 @@ class ProductServiceTest {
         Product product = new Product("Ikan Gurame", -5000.0, 10);
         assertThrows(IllegalArgumentException.class, () -> productService.saveProduct(product));
     }
+
+    @Test
+    void testGetAllProductsShouldNotReturnNull() {
+        List<Product> products = productService.getAllProducts();
+        assertNotNull(products);
+    }
+    
 }
