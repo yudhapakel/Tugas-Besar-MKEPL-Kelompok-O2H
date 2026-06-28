@@ -16,6 +16,7 @@ class ProductServiceTest {
     @Autowired
     private ProductService productService;
 
+    // Test valid product creation and retrieval
     @Test
     void testSaveAndGetProduct() {
         Product product = new Product("Ikan Mujair", 25000.0, 50);
@@ -58,5 +59,11 @@ class ProductServiceTest {
         productService.deleteProduct(saved.getId());
         java.util.Optional<Product> found = productService.getProductById(saved.getId());
         assertFalse(found.isPresent());
+    }
+
+    @Test
+    void testGetAllProductsShouldNotReturnNull() {
+        List<Product> products = productService.getAllProducts();
+        assertNotNull(products);
     }
 }
